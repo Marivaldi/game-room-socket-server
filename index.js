@@ -47,6 +47,18 @@ wss.on('connection', function connect(ws) {
                 }));
 
                 break;
+            case "SEND_LOBBY_CHAT":
+                const lobby = lobbies.find((lobby) => lobby.id === message.lobby_id);
+                for(player of lobby.players) {
+                    connections[player].send(JSON.stringify(
+                        {
+                            type: "RECEIVE_LOBBY_CHAT",
+                            sender: "Some Guy",
+                            message: message.message
+                        }
+                    ))
+                }
+                break;
         }
     });
 
