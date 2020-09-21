@@ -24,7 +24,6 @@ export default class Lobby {
 
     connect(player: Player) {
         this.players.push(player);
-        if (this.isFull) this.send(new GameStartMessage());
     }
 
     disconnect(player: Player) {

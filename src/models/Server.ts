@@ -10,6 +10,7 @@ import SystemChatMessage from "./socket-messages/SystemChatMessage";
 import { join } from "path";
 import SendLobbyChatMessage from "./socket-messages/SendLobbyChatMessage";
 import ReceiveLobbyChatMessage from "./socket-messages/ReceiveLobbyChatMessage";
+import GameStartMessage from "./socket-messages/GameStartMessage";
 
 export class Server {
     private webSocketServer: WebSocket.Server;
@@ -86,6 +87,11 @@ export class Server {
         player.send(new LobbyJoinedMessage(lobbyToJoin.lobbyId));
 
         lobbyToJoin.send(new SystemChatMessage(`${message.username} has joined the lobby.`));
+
+        if (lobbyToJoin.isFull) {
+            lobbyToJoin.send(new SystemChatMessage(`Everyone is in... we can finally start.`));
+            lobbyToJoin.send(new GameStartMessage())
+        };
     }
 
     sendLobbyChat(message: SendLobbyChatMessage) {
