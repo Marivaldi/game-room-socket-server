@@ -75,15 +75,12 @@ export class Server {
         let lobbyToJoin: Lobby = this.getAvailableLobby();
 
         const thereIsNoAvailableLobby = !lobbyToJoin;
-
         if (thereIsNoAvailableLobby) lobbyToJoin = this.createNewLobby();
 
         const player = this.connections.get(message.connectionId)
-
         if (!player) return;
 
         player.username = message.username;
-
         lobbyToJoin.connect(player);
 
         player.send(new LobbyJoinedMessage(lobbyToJoin.lobbyId));
