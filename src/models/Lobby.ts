@@ -12,8 +12,6 @@ export default class Lobby {
     }
 
     send(socketMessage: ISocketMessage) {
-        console.log("inside of lobby")
-        console.log(socketMessage);
         this.players.forEach((player) => {
             player.send(socketMessage);
         });
