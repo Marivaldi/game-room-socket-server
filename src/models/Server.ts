@@ -56,40 +56,10 @@ export class Server {
 
         switch (message.type) {
             case SocketMessageType.JOIN_RANDOM_LOBBY:
-                const joinLobbyMessage: JoinLobbyMessage = message as JoinLobbyMessage;
-
-                let lobbyToJoin: Lobby = this.getAvailableLobby();
-
-                const thereIsNoAvailableLobby = !lobbyToJoin;
-
-                if (thereIsNoAvailableLobby) lobbyToJoin = this.createNewLobby();
-
-                const player = this.connections.get(joinLobbyMessage.connectionId)
-
-                if (!player) return;
-
-                player.username = joinLobbyMessage.username;
-
-                lobbyToJoin.connect(player);
-
-                player.send(new LobbyJoinedMessage(lobbyToJoin.lobbyId));
-
-                lobbyToJoin.send(new SystemChatMessage(`${joinLobbyMessage.username} has joined the lobby.`))
-
+                this.joinRandomLobby(message as JoinLobbyMessage)
                 break;
             case SocketMessageType.SEND_LOBBY_CHAT:
-                const sendLobbyChatMessage: SendLobbyChatMessage = message as SendLobbyChatMessage;
-
-                const lobby: Lobby = this.lobbies.get(sendLobbyChatMessage.lobbyId);
-;
-                const lobbyNoLongerExists = !lobby;
-                if (lobbyNoLongerExists) return;
-
-                const sender = this.connections.get(sendLobbyChatMessage.connectionId)
-                if (!sender) return;
-
-                lobby.send(new ReceiveLobbyChatMessage(sender.connectionId, sender.username, sendLobbyChatMessage.content));
-
+                this.sendLobbyChat(message as SendLobbyChatMessage);
                 break;
         }
     }
@@ -98,5 +68,38 @@ export class Server {
             const lobby = this.lobbies.get(lobbyId);
             if (lobby.hasAvailableSeats) return lobby;
         }
+    }
+
+
+    joinRandomLobby(message: JoinLobbyMessage) {
+        let lobbyToJoin: Lobby = this.getAvailableLobby();
+
+        const thereIsNoAvailableLobby = !lobbyToJoin;
+
+        if (thereIsNoAvailableLobby) lobbyToJoin = this.createNewLobby();
+
+        const player = this.connections.get(message.connectionId)
+
+        if (!player) return;
+
+        player.username = message.username;
+
+        lobbyToJoin.connect(player);
+
+        player.send(new LobbyJoinedMessage(lobbyToJoin.lobbyId));
+
+        lobbyToJoin.send(new SystemChatMessage(`${message.username} has joined the lobby.`));
+    }
+
+    sendLobbyChat(message: SendLobbyChatMessage) {
+        const lobby: Lobby = this.lobbies.get(message.lobbyId);
+        const lobbyNoLongerExists = !lobby;
+        if (lobbyNoLongerExists) return;
+
+        const sender = this.connections.get(message.connectionId)
+        if (!sender) return;
+
+        lobby.send(new ReceiveLobbyChatMessage(sender.connectionId, sender.username, message.content));
+
     }
 }
