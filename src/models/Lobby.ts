@@ -1,5 +1,6 @@
 import { POINT_CONVERSION_COMPRESSED } from "constants";
 import { Player } from "./Player";
+import GameStartMessage from "./socket-messages/GameStartMessage";
 import ISocketMessage from "./socket-messages/interfaces/ISocketMessage";
 
 export default class Lobby {
@@ -11,6 +12,10 @@ export default class Lobby {
         return this.players.length < Lobby.MAX_PLAYERS;
     }
 
+    get isFull(): boolean {
+        return this.players.length === Lobby.MAX_PLAYERS;
+    }
+
     send(socketMessage: ISocketMessage) {
         this.players.forEach((player) => {
             player.send(socketMessage);
@@ -19,6 +24,7 @@ export default class Lobby {
 
     connect(player: Player) {
         this.players.push(player);
+        if (this.isFull) this.send(new GameStartMessage());
     }
 
     disconnect(player: Player) {
