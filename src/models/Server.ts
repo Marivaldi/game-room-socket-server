@@ -12,6 +12,8 @@ import ReceiveLobbyChatMessage from "./socket-messages/ReceiveLobbyChatMessage";
 import GameStartMessage from "./socket-messages/GameStartMessage";
 import UserIsTypingMessage from "./socket-messages/UserIsTypingMessage";
 import UserStoppedTypingMessage from "./socket-messages/UserStoppedTypingMessage";
+import PongMessage from "./socket-messages/PongMessage";
+import PingMessage from "./socket-messages/PingMessage";
 
 export class Server {
     private webSocketServer: WebSocket.Server;
@@ -69,6 +71,8 @@ export class Server {
             case SocketMessageType.USER_STOPPED_TYPING:
                 this.notifyOtherUsersThatUserStoppedTyping(message as UserStoppedTypingMessage);
                 break;
+            case SocketMessageType.PING:
+                this.sendPongToPlayer(message as PingMessage)
         }
     }
     getAvailableLobby(): Lobby {
@@ -76,6 +80,13 @@ export class Server {
             const lobby = this.lobbies.get(lobbyId);
             if (lobby.hasAvailableSeats) return lobby;
         }
+    }
+
+    sendPongToPlayer(message: PingMessage) {
+        const player = this.connections.get(message.connectionId)
+        if (!player) return;
+
+        player.send(new PongMessage());
     }
 
 
