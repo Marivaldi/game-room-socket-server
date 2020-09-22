@@ -6,7 +6,8 @@
   "scripts": {
     "watch": "nodemon",
     "build": "rimraf ./build && tsc",
-    "start": "npm run build && node build/index.js",
+    "start": "node build/index.js",
+    "deploy:heroku": "git push heroku master",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
