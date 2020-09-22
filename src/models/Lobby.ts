@@ -1,4 +1,5 @@
 import { POINT_CONVERSION_COMPRESSED } from "constants";
+import IGame from "./games/IGame";
 import { Player } from "./Player";
 import GameStartMessage from "./socket-messages/GameStartMessage";
 import ISocketMessage from "./socket-messages/interfaces/ISocketMessage";
@@ -6,6 +7,7 @@ import ISocketMessage from "./socket-messages/interfaces/ISocketMessage";
 export default class Lobby {
     static readonly MAX_PLAYERS = 2;
     private players: Player[] = [];
+    private game: IGame;
     constructor(public lobbyId) {}
 
     get hasAvailableSeats(): boolean {
