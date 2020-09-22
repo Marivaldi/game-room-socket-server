@@ -7,10 +7,11 @@ import { SocketMessageType } from "./socket-messages/enums/SocketMessageType";
 import LobbyJoinedMessage from "./socket-messages/LobbyJoinedMessage";
 import JoinLobbyMessage from "./socket-messages/JoinLobbyMessage";
 import SystemChatMessage from "./socket-messages/SystemChatMessage";
-import { join } from "path";
 import SendLobbyChatMessage from "./socket-messages/SendLobbyChatMessage";
 import ReceiveLobbyChatMessage from "./socket-messages/ReceiveLobbyChatMessage";
 import GameStartMessage from "./socket-messages/GameStartMessage";
+import UserIsTypingMessage from "./socket-messages/UserIsTypingMessage";
+import UserStoppedTypingMessage from "./socket-messages/UserStoppedTypingMessage";
 
 export class Server {
     private webSocketServer: WebSocket.Server;
@@ -62,6 +63,12 @@ export class Server {
             case SocketMessageType.SEND_LOBBY_CHAT:
                 this.sendLobbyChat(message as SendLobbyChatMessage);
                 break;
+            case SocketMessageType.USER_IS_TYPING:
+                this.notifyOtherUsersThatUserIsTyping(message as UserIsTypingMessage);
+                break;
+            case SocketMessageType.USER_STOPPED_TYPING:
+                this.notifyOtherUsersThatUserStoppedTyping(message as UserStoppedTypingMessage);
+                break;
         }
     }
     getAvailableLobby(): Lobby {
@@ -104,5 +111,21 @@ export class Server {
 
         lobby.send(new ReceiveLobbyChatMessage(sender.connectionId, sender.username, message.content));
 
+    }
+
+    notifyOtherUsersThatUserIsTyping(message: UserIsTypingMessage) {
+        const lobby: Lobby = this.lobbies.get(message.lobbyId);
+        const lobbyNoLongerExists = !lobby;
+        if (lobbyNoLongerExists) return;
+
+        lobby.sendAndExclude(new UserIsTypingMessage(message.connectionId, message.lobbyId), [message.connectionId]);
+    }
+
+    notifyOtherUsersThatUserStoppedTyping(message: UserStoppedTypingMessage) {
+        const lobby: Lobby = this.lobbies.get(message.lobbyId);
+        const lobbyNoLongerExists = !lobby;
+        if (lobbyNoLongerExists) return;
+
+        lobby.sendAndExclude(new UserStoppedTypingMessage(message.connectionId, message.lobbyId), [message.connectionId]);
     }
 }

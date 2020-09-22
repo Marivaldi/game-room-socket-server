@@ -22,6 +22,19 @@ export default class Lobby {
         });
     }
 
+    sendAndExclude(socketMessage: ISocketMessage, playersToExclude: string[]) {
+        if(!playersToExclude || playersToExclude.length === 0) {
+            this.send(socketMessage);
+            return;
+        }
+
+        const relevantPlayers: Player[] = this.players.filter((player: Player) => !playersToExclude.includes(player.connectionId));
+
+        relevantPlayers.forEach((player) => {
+            player.send(socketMessage);
+        });
+    }
+
     connect(player: Player) {
         this.players.push(player);
     }
