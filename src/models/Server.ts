@@ -20,7 +20,7 @@ export class Server {
     constructor() { }
 
     start() {
-        this.webSocketServer = new WebSocket.Server({ port: 8080 });
+        this.webSocketServer = new WebSocket.Server({ port: parseInt(process.env.PORT) });
         this.webSocketServer.on('connection', (socket) => {
             const connectionId = uuidv4();
             socket.addEventListener('close', () => this.onPlayerDisconnect(connectionId));

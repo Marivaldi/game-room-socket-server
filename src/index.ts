@@ -1,4 +1,5 @@
 import { Server } from './models/Server';
+require('dotenv').config();
 
 class App {
     static server: Server;
