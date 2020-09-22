@@ -4,7 +4,7 @@ import GameStartMessage from "./socket-messages/GameStartMessage";
 import ISocketMessage from "./socket-messages/interfaces/ISocketMessage";
 
 export default class Lobby {
-    static readonly MAX_PLAYERS = 5;
+    static readonly MAX_PLAYERS = 2;
     private players: Player[] = [];
     constructor(public lobbyId) {}
 

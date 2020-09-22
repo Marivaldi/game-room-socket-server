@@ -89,7 +89,7 @@ export class Server {
         lobbyToJoin.send(new SystemChatMessage(`${message.username} has joined the lobby.`));
 
         if (lobbyToJoin.isFull) {
-            lobbyToJoin.send(new SystemChatMessage(`Everyone is in... we can finally start.`));
+            lobbyToJoin.send(new SystemChatMessage(`Everyone is in... let's get started.`));
             lobbyToJoin.send(new GameStartMessage())
         };
     }
