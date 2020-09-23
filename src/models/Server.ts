@@ -14,6 +14,7 @@ import UserIsTypingMessage from "./socket-messages/UserIsTypingMessage";
 import UserStoppedTypingMessage from "./socket-messages/UserStoppedTypingMessage";
 import PongMessage from "./socket-messages/PongMessage";
 import PingMessage from "./socket-messages/PingMessage";
+import { SystemMessageLevel } from "./socket-messages/enums/SystemMessageLevel";
 
 export class Server {
     private webSocketServer: WebSocket.Server;
@@ -41,15 +42,21 @@ export class Server {
     }
 
     removePlayerFromLobby(player: Player) {
-        const lobby = this.lobbies.get(player.lobbyId)
+        const lobbyId = player.lobbyId;
+        const username = player.username;
+        const lobby = this.lobbies.get(lobbyId)
         const theLobbyHasClosed = !lobby;
         if (theLobbyHasClosed) return;
 
         lobby.disconnect(player);
 
-        if(lobby.isEmpty()) this.lobbies.delete(player.lobbyId);
+        if(lobby.isEmpty()) {
+            this.lobbies.delete(lobbyId);
+            return;
+        }
 
-        player.lobbyId = "";
+        lobby.send(new SystemChatMessage(`${username} has left the lobby.`, SystemMessageLevel.DANGER));
+
     }
 
     createNewLobby(): Lobby {
@@ -109,11 +116,10 @@ export class Server {
 
         player.send(new LobbyJoinedMessage(lobbyToJoin.lobbyId));
 
-        lobbyToJoin.send(new SystemChatMessage(`${message.username} has joined the lobby.`));
+        lobbyToJoin.send(new SystemChatMessage(`${message.username} has joined the lobby.`, SystemMessageLevel.INFO));
 
         if (lobbyToJoin.isFull) {
-            lobbyToJoin.send(new SystemChatMessage(`Everyone is in... let's get started.`));
-            lobbyToJoin.send(new GameStartMessage())
+            lobbyToJoin.send(new SystemChatMessage(`Lobby is full.`, SystemMessageLevel.SUCCESS));
         };
     }
 

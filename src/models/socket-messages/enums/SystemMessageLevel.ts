@@ -1,4 +1,5 @@
 export enum SystemMessageLevel {
-    INFO,
-    DANGER
+    INFO = "INFO",
+    DANGER = "DANGER",
+    SUCCESS = "SUCCESS"
 }
