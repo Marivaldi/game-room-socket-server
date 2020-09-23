@@ -44,4 +44,8 @@ export default class Lobby {
     disconnect(player: Player) {
         this.players = this.players.filter((connectedPlayer) => connectedPlayer.connectionId !== player.connectionId);
     }
+
+    isEmpty(): boolean {
+        return this.players.length === 0;
+    }
 }

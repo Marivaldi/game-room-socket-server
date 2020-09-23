@@ -26,7 +26,7 @@ export class Server {
         this.webSocketServer = new WebSocket.Server({ port: parseInt(process.env.PORT) });
         this.webSocketServer.on('connection', (socket) => {
             const connectionId = uuidv4();
-            socket.addEventListener('close', () => this.onPlayerDisconnect(connectionId));
+            socket.on('close', () => this.onPlayerDisconnect(connectionId));
             socket.on('message', (json: string) => this.handleMessage(JSON.parse(json)))
             const player: Player = new Player(connectionId, socket);
             this.connections.set(connectionId, player);
@@ -35,7 +35,7 @@ export class Server {
 
     onPlayerDisconnect = (connectionId: string) => {
         const player: Player = this.connections.get(connectionId);
-        if (player.isInALobby) this.removePlayerFromLobby(player);
+        if (player.isInALobby()) this.removePlayerFromLobby(player);
 
         this.connections.delete(connectionId);
     }
@@ -46,6 +46,10 @@ export class Server {
         if (theLobbyHasClosed) return;
 
         lobby.disconnect(player);
+
+        if(lobby.isEmpty()) this.lobbies.delete(player.lobbyId);
+
+        player.lobbyId = "";
     }
 
     createNewLobby(): Lobby {
@@ -100,6 +104,7 @@ export class Server {
         if (!player) return;
 
         player.username = message.username;
+        player.lobbyId =  lobbyToJoin.lobbyId;
         lobbyToJoin.connect(player);
 
         player.send(new LobbyJoinedMessage(lobbyToJoin.lobbyId));
