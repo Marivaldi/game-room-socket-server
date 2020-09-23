@@ -5,6 +5,7 @@ import ISocketMessage from "./socket-messages/interfaces/ISocketMessage";
 export class Player {
     public lobbyId: string = "";
     public username: string;
+    public isLobbyHost: boolean = false;
 
     constructor(public connectionId: string, private socket: WebSocket) {
         this.acknowledgeConnection();

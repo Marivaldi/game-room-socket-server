@@ -15,6 +15,7 @@ import UserStoppedTypingMessage from "./socket-messages/UserStoppedTypingMessage
 import PongMessage from "./socket-messages/PongMessage";
 import PingMessage from "./socket-messages/PingMessage";
 import { SystemMessageLevel } from "./socket-messages/enums/SystemMessageLevel";
+import LobbyHostMessage from "./socket-messages/LobbyHostMessage";
 
 export class Server {
     private webSocketServer: WebSocket.Server;
@@ -104,8 +105,8 @@ export class Server {
     joinRandomLobby(message: JoinLobbyMessage) {
         let lobbyToJoin: Lobby = this.getAvailableLobby();
 
-        const thereIsNoAvailableLobby = !lobbyToJoin;
-        if (thereIsNoAvailableLobby) lobbyToJoin = this.createNewLobby();
+        const needToCreateANewLobby = !lobbyToJoin;
+        if (needToCreateANewLobby) lobbyToJoin = this.createNewLobby();
 
         const player = this.connections.get(message.connectionId)
         if (!player) return;
@@ -117,6 +118,11 @@ export class Server {
         player.send(new LobbyJoinedMessage(lobbyToJoin.lobbyId));
 
         lobbyToJoin.send(new SystemChatMessage(`${message.username} has joined the lobby.`, SystemMessageLevel.INFO));
+
+        if(needToCreateANewLobby) {
+            player.isLobbyHost = true;
+            player.send(new LobbyHostMessage());
+        }
 
         if (lobbyToJoin.isFull) {
             lobbyToJoin.send(new SystemChatMessage(`Lobby is full.`, SystemMessageLevel.SUCCESS));

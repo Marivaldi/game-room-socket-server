@@ -8,5 +8,6 @@ export enum SocketMessageType {
     USER_IS_TYPING = "USER_IS_TYPING",
     USER_STOPPED_TYPING = "USER_STOPPED_TYPING",
     PING = "PING",
-    PONG = "PONG"
+    PONG = "PONG",
+    LOBBY_HOST = "LOBBY_HOST"
 }
