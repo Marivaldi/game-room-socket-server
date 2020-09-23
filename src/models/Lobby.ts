@@ -1,4 +1,5 @@
 import { POINT_CONVERSION_COMPRESSED } from "constants";
+import { threadId } from "worker_threads";
 import { GameKey } from "./games/enums/GameKey";
 import { GameFactory } from "./games/GameFactory";
 import { GameVote } from "./games/GameVote";
@@ -7,6 +8,7 @@ import { Player } from "./Player";
 import { SystemMessageLevel } from "./socket-messages/enums/SystemMessageLevel";
 import GameStartingMessage from "./socket-messages/GameStartingMessage";
 import GameStartMessage from "./socket-messages/GameStartingMessage";
+import { IGameSocketMessage } from "./socket-messages/interfaces/IGameSocketMessage";
 import ISocketMessage from "./socket-messages/interfaces/ISocketMessage";
 import LobbyHostMessage from "./socket-messages/LobbyHostMessage";
 import SystemChatMessage from "./socket-messages/SystemChatMessage";
@@ -93,8 +95,20 @@ export default class Lobby {
     }
 
     startGame(gameKey: GameKey) {
-        this.game = this.gameFactory.create(gameKey);
+        this.game = this.gameFactory.create(gameKey, this);
+        this.game.play();
         this.send(new GameStartingMessage(gameKey));
+    }
+
+    passGameMessage(gameMessage: IGameSocketMessage) {
+        this.game.handleMessage(gameMessage)
+    }
+
+    lobbyUsername(connectionId: string) {
+        const player: Player = this.players.find((player: Player) => player.connectionId === connectionId);
+        if(!player) return "";
+
+        return player.username;
     }
 
     private pickNewHostFromRemainingPlayers() {

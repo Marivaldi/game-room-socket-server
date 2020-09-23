@@ -20,6 +20,7 @@ import VoteForGameMessage from "./socket-messages/VoteForGameMessage";
 import { GameVote } from "./games/GameVote";
 import { UpdateGameVotesMessage } from "./socket-messages/UpdateGameVotesMessage";
 import StartGameMessage from "./socket-messages/StartGameMesssage";
+import GameActionMessage from "./socket-messages/GameActionMessage";
 
 export class Server {
     private webSocketServer: WebSocket.Server;
@@ -96,6 +97,10 @@ export class Server {
                 break;
             case SocketMessageType.START_GAME:
                 this.startGame(message as StartGameMessage)
+                break;
+            case SocketMessageType.GAME_ACTION:
+                this.handleGameAction(message as GameActionMessage)
+                break;
         }
     }
     getAvailableLobby(): Lobby {
@@ -190,5 +195,13 @@ export class Server {
         if (lobbyNoLongerExists) return;
 
         lobby.startGame(message.gameKey);
+    }
+
+    handleGameAction(message: GameActionMessage) {
+        const lobby: Lobby = this.lobbies.get(message.lobbyId);
+        const lobbyNoLongerExists = !lobby;
+        if (lobbyNoLongerExists) return;
+
+        lobby.passGameMessage(message.gameMessage);
     }
 }

@@ -1,6 +1,12 @@
 import { TypeState } from "typestate";
+import Lobby from "../../Lobby";
+import GameOverMessage from "../../socket-messages/GameOverMessage";
+import { IGameSocketMessage } from "../../socket-messages/interfaces/IGameSocketMessage";
+import ISocketMessage from "../../socket-messages/interfaces/ISocketMessage";
 import { GameKey } from "../enums/GameKey";
 import IGame from "../IGame";
+import FirstClickMessage from "./messages/FirstClickMessage";
+import { TestGameMessageType } from "./messages/TestGameMessageType";
 
 enum TestGameState {
     Starting,
@@ -11,10 +17,18 @@ enum TestGameState {
 export default class TestGame implements IGame {
     key: GameKey.TEST_GAME;
     stateMachine: TypeState.FiniteStateMachine<TestGameState>;
-    constructor() {
+    constructor(private lobby: Lobby) {
         this.stateMachine = new TypeState.FiniteStateMachine<TestGameState>(TestGameState.Starting);
         this.stateMachine.from(TestGameState.Starting).to(TestGameState.InProgress);
         this.stateMachine.from(TestGameState.InProgress).to(TestGameState.GameOver);
+    }
+
+    handleMessage(message: IGameSocketMessage) {
+        switch(message.type) {
+            case TestGameMessageType.FIRST_CLICK:
+                this.handleFirstClick(message as FirstClickMessage);
+                break;
+        }
     }
 
     play() {
@@ -25,5 +39,16 @@ export default class TestGame implements IGame {
     finish() {
         const theGameHasNotStarted: boolean = this.stateMachine.canGo(TestGameState.GameOver);
         if(theGameHasNotStarted) this.stateMachine.go(TestGameState.GameOver);
+    }
+
+
+    private handleFirstClick(message: FirstClickMessage) {
+        this.finish();
+        this.notifyPlayersOfWinner(message.connectionId);
+    }
+
+    private notifyPlayersOfWinner(winnerId: string) {
+        const username: string = this.lobby.lobbyUsername(winnerId);
+        this.lobby.send(new GameOverMessage([username]));
     }
 }
