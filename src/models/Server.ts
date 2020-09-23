@@ -16,6 +16,9 @@ import PongMessage from "./socket-messages/PongMessage";
 import PingMessage from "./socket-messages/PingMessage";
 import { SystemMessageLevel } from "./socket-messages/enums/SystemMessageLevel";
 import LobbyHostMessage from "./socket-messages/LobbyHostMessage";
+import VoteForGameMessage from "./socket-messages/VoteForGameMessage";
+import { GameVote } from "./games/GameVote";
+import { UpdateGameVotesMessage } from "./socket-messages/UpdateGameVotesMessage";
 
 export class Server {
     private webSocketServer: WebSocket.Server;
@@ -57,6 +60,7 @@ export class Server {
         }
 
         lobby.send(new SystemChatMessage(`${username} has left the lobby.`, SystemMessageLevel.DANGER));
+        lobby.send(new UpdateGameVotesMessage(lobby.getGameVotes()));
 
     }
 
@@ -84,7 +88,11 @@ export class Server {
                 this.notifyOtherUsersThatUserStoppedTyping(message as UserStoppedTypingMessage);
                 break;
             case SocketMessageType.PING:
-                this.sendPongToPlayer(message as PingMessage)
+                this.sendPongToPlayer(message as PingMessage);
+                break;
+            case SocketMessageType.VOTE_FOR_GAME:
+                this.voteForGameAndPushToPlayers(message as VoteForGameMessage);
+                break;
         }
     }
     getAvailableLobby(): Lobby {
@@ -127,6 +135,8 @@ export class Server {
         if (lobbyToJoin.isFull) {
             lobbyToJoin.send(new SystemChatMessage(`Lobby is full.`, SystemMessageLevel.SUCCESS));
         };
+
+        this.updateGameVotes(lobbyToJoin);
     }
 
     sendLobbyChat(message: SendLobbyChatMessage) {
@@ -155,5 +165,19 @@ export class Server {
         if (lobbyNoLongerExists) return;
 
         lobby.sendAndExclude(new UserStoppedTypingMessage(message.connectionId, message.lobbyId), [message.connectionId]);
+    }
+
+    voteForGameAndPushToPlayers(message: VoteForGameMessage) {
+        const lobby: Lobby = this.lobbies.get(message.lobbyId);
+        const lobbyNoLongerExists = !lobby;
+        if (lobbyNoLongerExists) return;
+
+        lobby.voteForGame(message.connectionId, message.gameKey);
+        this.updateGameVotes(lobby);
+    }
+
+    updateGameVotes(lobby: Lobby) {
+        const gameVotes: GameVote[] = lobby.getGameVotes();
+        lobby.send(new UpdateGameVotesMessage(gameVotes));
     }
 }

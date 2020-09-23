@@ -1,4 +1,6 @@
 import { POINT_CONVERSION_COMPRESSED } from "constants";
+import { GameKey } from "./games/enums/GameKey";
+import { GameVote } from "./games/GameVote";
 import IGame from "./games/IGame";
 import { Player } from "./Player";
 import { SystemMessageLevel } from "./socket-messages/enums/SystemMessageLevel";
@@ -6,11 +8,14 @@ import GameStartMessage from "./socket-messages/GameStartMessage";
 import ISocketMessage from "./socket-messages/interfaces/ISocketMessage";
 import LobbyHostMessage from "./socket-messages/LobbyHostMessage";
 import SystemChatMessage from "./socket-messages/SystemChatMessage";
+import VoteForGameMessage from "./socket-messages/VoteForGameMessage";
 
 export default class Lobby {
     static readonly MAX_PLAYERS = 5;
     private players: Player[] = [];
     private game: IGame;
+    private gameVotes: Map<GameKey, string[]> = new Map<GameKey, string[]>();
+
     constructor(public lobbyId) {}
 
     get hasAvailableSeats(): boolean {
@@ -47,10 +52,41 @@ export default class Lobby {
     disconnect(player: Player) {
         this.players = this.players.filter((connectedPlayer) => connectedPlayer.connectionId !== player.connectionId);
         if(player.isLobbyHost) this.pickNewHostFromRemainingPlayers();
+
+        this.removePlayersVotes(player.connectionId);
     }
 
     isEmpty(): boolean {
         return this.players.length === 0;
+    }
+
+    voteForGame(connectionId: string, gameKey: GameKey) {
+        if(this.gameVotes.has(gameKey)) {
+            this.gameVotes.get(gameKey).push(connectionId);
+            return;
+        }
+
+        this.gameVotes.set(gameKey, [connectionId]);
+    }
+
+    getGameVotes(): GameVote[] {
+        const keys = this.gameVotes.keys();
+        let votes: GameVote[] = [];
+        for(let key of keys) {
+            const amountOfVotes = this.gameVotes.get(key).length;
+            votes.push({key: key, votes: amountOfVotes});
+        }
+
+        return votes;
+    }
+
+    removePlayersVotes(connectionId: string) {
+        const keys = this.gameVotes.keys();
+        for(let key of keys) {
+            const playerVotes = this.gameVotes.get(key);
+            const withoutPlayer = playerVotes.filter((voterConnectionId) => voterConnectionId !== connectionId);
+            this.gameVotes.set(key, withoutPlayer);
+        }
     }
 
     private pickNewHostFromRemainingPlayers() {
