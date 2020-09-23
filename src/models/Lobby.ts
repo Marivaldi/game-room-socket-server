@@ -1,10 +1,12 @@
 import { POINT_CONVERSION_COMPRESSED } from "constants";
 import { GameKey } from "./games/enums/GameKey";
+import { GameFactory } from "./games/GameFactory";
 import { GameVote } from "./games/GameVote";
 import IGame from "./games/IGame";
 import { Player } from "./Player";
 import { SystemMessageLevel } from "./socket-messages/enums/SystemMessageLevel";
-import GameStartMessage from "./socket-messages/GameStartMessage";
+import GameStartingMessage from "./socket-messages/GameStartingMessage";
+import GameStartMessage from "./socket-messages/GameStartingMessage";
 import ISocketMessage from "./socket-messages/interfaces/ISocketMessage";
 import LobbyHostMessage from "./socket-messages/LobbyHostMessage";
 import SystemChatMessage from "./socket-messages/SystemChatMessage";
@@ -13,6 +15,7 @@ import VoteForGameMessage from "./socket-messages/VoteForGameMessage";
 export default class Lobby {
     static readonly MAX_PLAYERS = 5;
     private players: Player[] = [];
+    private gameFactory: GameFactory = new GameFactory();
     private game: IGame;
     private gameVotes: Map<GameKey, string[]> = new Map<GameKey, string[]>();
 
@@ -87,6 +90,11 @@ export default class Lobby {
             const withoutPlayer = playerVotes.filter((voterConnectionId) => voterConnectionId !== connectionId);
             this.gameVotes.set(key, withoutPlayer);
         }
+    }
+
+    startGame(gameKey: GameKey) {
+        this.game = this.gameFactory.create(gameKey);
+        this.send(new GameStartingMessage(gameKey));
     }
 
     private pickNewHostFromRemainingPlayers() {

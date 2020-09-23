@@ -9,7 +9,7 @@ import JoinLobbyMessage from "./socket-messages/JoinLobbyMessage";
 import SystemChatMessage from "./socket-messages/SystemChatMessage";
 import SendLobbyChatMessage from "./socket-messages/SendLobbyChatMessage";
 import ReceiveLobbyChatMessage from "./socket-messages/ReceiveLobbyChatMessage";
-import GameStartMessage from "./socket-messages/GameStartMessage";
+import GameStartMessage from "./socket-messages/GameStartingMessage";
 import UserIsTypingMessage from "./socket-messages/UserIsTypingMessage";
 import UserStoppedTypingMessage from "./socket-messages/UserStoppedTypingMessage";
 import PongMessage from "./socket-messages/PongMessage";
@@ -19,6 +19,7 @@ import LobbyHostMessage from "./socket-messages/LobbyHostMessage";
 import VoteForGameMessage from "./socket-messages/VoteForGameMessage";
 import { GameVote } from "./games/GameVote";
 import { UpdateGameVotesMessage } from "./socket-messages/UpdateGameVotesMessage";
+import StartGameMessage from "./socket-messages/StartGameMesssage";
 
 export class Server {
     private webSocketServer: WebSocket.Server;
@@ -93,6 +94,8 @@ export class Server {
             case SocketMessageType.VOTE_FOR_GAME:
                 this.voteForGameAndPushToPlayers(message as VoteForGameMessage);
                 break;
+            case SocketMessageType.START_GAME:
+                this.startGame(message as StartGameMessage)
         }
     }
     getAvailableLobby(): Lobby {
@@ -179,5 +182,13 @@ export class Server {
     updateGameVotes(lobby: Lobby) {
         const gameVotes: GameVote[] = lobby.getGameVotes();
         lobby.send(new UpdateGameVotesMessage(gameVotes));
+    }
+
+    startGame(message: StartGameMessage) {
+        const lobby: Lobby = this.lobbies.get(message.lobbyId);
+        const lobbyNoLongerExists = !lobby;
+        if (lobbyNoLongerExists) return;
+
+        lobby.startGame(message.gameKey);
     }
 }
