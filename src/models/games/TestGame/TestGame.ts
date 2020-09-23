@@ -1,4 +1,5 @@
 import { TypeState } from "typestate";
+import { GameKey } from "../enums/GameKey";
 import IGame from "../IGame";
 
 enum TestGameState {
@@ -8,6 +9,7 @@ enum TestGameState {
 }
 
 export default class TestGame implements IGame {
+    key: GameKey.TEST_GAME;
     stateMachine: TypeState.FiniteStateMachine<TestGameState>;
     constructor() {
         this.stateMachine = new TypeState.FiniteStateMachine<TestGameState>(TestGameState.Starting);
