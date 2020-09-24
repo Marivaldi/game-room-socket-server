@@ -31,14 +31,16 @@ export default class TriviaGame implements IGame {
     private playerAnswers: Map<string, Answers> = new Map<string, Answers>();
     private playerOrder: string[] = [];
     private currentCategoryPicker: number = 0;
-
+    private recievedAnswersForRound: number = 0;
+    private rounds: number = 1;
     constructor(private lobby: Lobby) {
         this.stateMachine = new TypeState.FiniteStateMachine<TriviaGameState>(TriviaGameState.Starting);
         this.stateMachine.from(TriviaGameState.Starting).to(TriviaGameState.CategorySelection);
         this.stateMachine.from(TriviaGameState.CategorySelection).to(TriviaGameState.WaitingForAnswers);
         this.stateMachine.from(TriviaGameState.WaitingForAnswers).to(TriviaGameState.CategorySelection);
-        this.stateMachine.from(TriviaGameState.WaitingForAnswers).to(TriviaGameState.ShowingFinalStandings);
-        this.stateMachine.from(TriviaGameState.ShowingFinalStandings).to(TriviaGameState.GameOver);
+        // this.stateMachine.from(TriviaGameState.WaitingForAnswers).to(TriviaGameState.ShowingFinalStandings);
+        // this.stateMachine.from(TriviaGameState.ShowingFinalStandings).to(TriviaGameState.GameOver);
+        this.stateMachine.from(TriviaGameState.WaitingForAnswers).to(TriviaGameState.GameOver);
 
         lobby.players.forEach((player : Player) => this.playerAnswers.set(player.connectionId, new Answers()));
         this.playerOrder = lobby.players.map((player : Player) => player.connectionId);
@@ -78,6 +80,34 @@ export default class TriviaGame implements IGame {
         } else {
             this.playerAnswers.get(message.connectionId).incorrect +=1;
         }
+
+        this.recievedAnswersForRound++
+
+        const theServerHasRecveivedAllAnswers: boolean = this.recievedAnswersForRound === this.playerOrder.length;
+        if(theServerHasRecveivedAllAnswers) {
+            if (this.rounds === TriviaGame.NUMBER_OF_ROUNDS) {
+                const winnerIds: string[] = this.findWinners();
+                this.notifyPlayersOfWinner(winnerIds);
+                return;
+            }
+
+            this.rounds++;
+            this.backToChoosingCategory();
+            this.recievedAnswersForRound = 0;
+        }
+    }
+
+    private findWinners() : string[] {
+        let winningPlayer: string = "";
+        let mostCorrectAnswers: number = 0;
+        this.playerAnswers.forEach((value: Answers, key: string) => {
+            if(value.correct >= mostCorrectAnswers){
+                mostCorrectAnswers = value.correct;
+                winningPlayer = key;
+            }
+        });
+
+        return [winningPlayer];
     }
 
     private backToChoosingCategory() {
@@ -93,13 +123,17 @@ export default class TriviaGame implements IGame {
         this.sendMessageToEveryoneElse();
     }
 
-    private notifyPlayersOfWinner(winnerId: string) {
-        const username: string = this.lobby.lobbyUsername(winnerId);
-        this.lobby.send(new GameOverMessage([username]));
+    private notifyPlayersOfWinner(winnerIds: string[]) {
+        const usernames: string[] = winnerIds.map((winnerId: string)=> this.lobby.lobbyUsername(winnerId));
+        this.lobby.send(new GameOverMessage(usernames));
     }
 
     private setNextCategoryPicker() {
-        this.currentCategoryPicker = (this.currentCategoryPicker === this.playerOrder.length - 1) ? 0 : this.currentCategoryPicker++;
+        if (this.currentCategoryPicker === (this.playerOrder.length - 1)) {
+            this.currentCategoryPicker = 0;
+        } else {
+            this.currentCategoryPicker++;
+        }
     }
 
     private sendMessageToCategoryPicker() {
@@ -115,7 +149,7 @@ export default class TriviaGame implements IGame {
 
     private async getTriviaQuestionFromAPI(category: number) {
         let rest: rm.RestClient = new rm.RestClient('', 'https://opentdb.com');
-        const response: rm.IRestResponse<any> = await rest.get<any>(`api.php?amount=1&category=${category}`,);
+        const response: rm.IRestResponse<any> = await rest.get<any>(`api.php?amount=1&category=${category}&difficulty=medium`,);
         return response.result;
     }
 

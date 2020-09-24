@@ -21,7 +21,6 @@ import { GameVote } from "./games/GameVote";
 import { UpdateGameVotesMessage } from "./socket-messages/UpdateGameVotesMessage";
 import StartGameMessage from "./socket-messages/StartGameMesssage";
 import GameActionMessage from "./socket-messages/GameActionMessage";
-import { Console } from "console";
 import PlayMessage from "./socket-messages/PlayMessage";
 
 export class Server {
