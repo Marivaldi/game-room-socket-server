@@ -1,0 +1,5 @@
+export enum TriviaGameMessageType {
+    PICK_CATEGORY = "PICK_CATEGORY",
+    WAIT_FOR_CATEGORY = "WAIT_FOR_CATEGORY",
+    ANSWER_QUESTION = "ANSWER_QUESTION"
+}

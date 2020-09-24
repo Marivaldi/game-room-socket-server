@@ -16,7 +16,7 @@ import VoteForGameMessage from "./socket-messages/VoteForGameMessage";
 
 export default class Lobby {
     static readonly MAX_PLAYERS = 5;
-    private players: Player[] = [];
+    players: Player[] = [];
     private gameFactory: GameFactory = new GameFactory();
     private game: IGame;
     private gameVotes: Map<GameKey, string[]> = new Map<GameKey, string[]>();
@@ -35,6 +35,13 @@ export default class Lobby {
         this.players.forEach((player) => {
             player.send(socketMessage);
         });
+    }
+
+    sendToSpecificPlayer(socketMessage: ISocketMessage, connectionId: string) {
+        const player: Player = this.players.find((player: Player) => player.connectionId === connectionId);
+        if(!player) return;
+
+        player.send(socketMessage);
     }
 
     sendAndExclude(socketMessage: ISocketMessage, playersToExclude: string[]) {
@@ -96,8 +103,13 @@ export default class Lobby {
 
     startGame(gameKey: GameKey) {
         this.game = this.gameFactory.create(gameKey, this);
-        this.game.play();
         this.send(new GameStartingMessage(gameKey));
+    }
+
+    pressPlay() {
+        if(!this.game) return;
+
+        this.game.play();
     }
 
     passGameMessage(gameMessage: IGameSocketMessage) {

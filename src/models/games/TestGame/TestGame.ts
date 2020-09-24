@@ -2,7 +2,6 @@ import { TypeState } from "typestate";
 import Lobby from "../../Lobby";
 import GameOverMessage from "../../socket-messages/GameOverMessage";
 import { IGameSocketMessage } from "../../socket-messages/interfaces/IGameSocketMessage";
-import ISocketMessage from "../../socket-messages/interfaces/ISocketMessage";
 import { GameKey } from "../enums/GameKey";
 import IGame from "../IGame";
 import FirstClickMessage from "./messages/FirstClickMessage";
