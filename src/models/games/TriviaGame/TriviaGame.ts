@@ -11,6 +11,10 @@ import  shuffle from 'shuffle-array';
 import GameActionFromServerMessage from "../../socket-messages/GameActionFromServerMessage";
 import WaitForCategoryMessage from "./messages/WaitForCategoryMessage";
 import PickCategoryMessage from "./messages/PickCategoryMessage";
+import * as rm from "typed-rest-client";
+import { Http2ServerResponse } from "http2";
+import CategoryPickedMessage from "./messages/CategoryPickedMessage";
+import ShowQuestionMessage from "./messages/ShowQuestionMessage";
 
 enum TriviaGameState {
     Starting,
@@ -46,6 +50,9 @@ export default class TriviaGame implements IGame {
             case TriviaGameMessageType.ANSWER_QUESTION:
                 this.handleAnswerQuestion(message as AnswerQuestionMessage);
                 break;
+            case TriviaGameMessageType.CATEGORY_PICKED:
+                this.handleCategoryPicked(message as CategoryPickedMessage);
+                break;
         }
     }
 
@@ -60,6 +67,10 @@ export default class TriviaGame implements IGame {
         if(theGameHasNotStarted) this.stateMachine.go(TriviaGameState.GameOver);
     }
 
+    private async handleCategoryPicked(message: CategoryPickedMessage) {
+        const triviaQuestion = await this.getTriviaQuestionFromAPI(message.category);
+        this.sendTriviaQuestionToPlayers(triviaQuestion)
+    }
 
     private handleAnswerQuestion(message: AnswerQuestionMessage) {
         if(message.answerWasCorrect) {
@@ -100,6 +111,16 @@ export default class TriviaGame implements IGame {
         const pickerId : string = this.playerOrder[this.currentCategoryPicker];
         const categoryPickerName: string = this.lobby.lobbyUsername(pickerId);
         this.lobby.sendAndExclude(new GameActionFromServerMessage(new WaitForCategoryMessage(categoryPickerName)), [pickerId]);
+    }
+
+    private async getTriviaQuestionFromAPI(category: number) {
+        let rest: rm.RestClient = new rm.RestClient('', 'https://opentdb.com');
+        const response: rm.IRestResponse<any> = await rest.get<any>(`api.php?amount=1&category=${category}`,);
+        return response.result;
+    }
+
+    private sendTriviaQuestionToPlayers(triviaQuestion: any) {
+        this.lobby.send(new GameActionFromServerMessage(new ShowQuestionMessage(triviaQuestion)));
     }
 }
 
