@@ -25,6 +25,7 @@ import PlayMessage from "./socket-messages/PlayMessage";
 import CreatePrivateLobbyMessage from "./socket-messages/CreatePrivateLobbyMessage";
 import { env } from "process";
 import LeaveLobbyMessage from "./socket-messages/LeaveLobbyMessage";
+import JoinSpecificLobbyMessage from "./socket-messages/JoinSpecificLobbyMessage";
 
 export class Server {
     private webSocketServer: WebSocket.Server;
@@ -89,6 +90,9 @@ export class Server {
         switch (message.type) {
             case SocketMessageType.JOIN_RANDOM_LOBBY:
                 this.joinRandomLobby(message as JoinLobbyMessage)
+                break;
+            case SocketMessageType.JOIN_LOBBY:
+                this.joinSpecificLobby(message as JoinSpecificLobbyMessage)
                 break;
             case SocketMessageType.LEAVE_LOBBY:
                 this.leaveLobby(message as LeaveLobbyMessage);
@@ -162,6 +166,27 @@ export class Server {
         if (lobbyToJoin.isFull) {
             lobbyToJoin.send(new SystemChatMessage(`Lobby is full.`, SystemMessageLevel.SUCCESS));
         };
+
+        this.updateGameVotes(lobbyToJoin);
+    }
+
+    joinSpecificLobby(message: JoinSpecificLobbyMessage) {
+        const lobbyToJoin: Lobby = this.lobbies.get(message.lobbyId);
+        const lobbyNoLongerExists = !lobbyToJoin;
+        if (lobbyNoLongerExists) return;
+
+        const player = this.connections.get(message.connectionId)
+        if (!player) return;
+
+        if(lobbyToJoin.isFull) return;
+
+        player.username = message.username;
+        player.lobbyId = lobbyToJoin.lobbyId;
+        lobbyToJoin.connect(player);
+
+        player.send(new LobbyJoinedMessage(lobbyToJoin.lobbyId));
+
+        lobbyToJoin.send(new SystemChatMessage(`${message.username} has joined the lobby.`, SystemMessageLevel.INFO));
 
         this.updateGameVotes(lobbyToJoin);
     }
