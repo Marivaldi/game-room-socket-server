@@ -47,6 +47,10 @@ export default class TriviaGame implements IGame {
         shuffle(this.playerOrder);
     }
 
+    isInProgress(): boolean {
+        return !this.stateMachine.is(TriviaGameState.GameOver);
+    }
+
     handleMessage(message: IGameSocketMessage) {
         switch (message.type) {
             case TriviaGameMessageType.ANSWER_QUESTION:
@@ -56,8 +60,7 @@ export default class TriviaGame implements IGame {
                 this.handleCategoryPicked(message as CategoryPickedMessage);
                 break;
             case TriviaGameMessageType.END_GAME:
-                const winnerIds: string[] = this.findWinners();
-                this.notifyPlayersOfWinner(winnerIds);
+                this.finish();
                 break;
         }
     }
@@ -71,6 +74,8 @@ export default class TriviaGame implements IGame {
     finish() {
         const theGameHasNotStarted: boolean = this.stateMachine.canGo(TriviaGameState.GameOver);
         if (theGameHasNotStarted) this.stateMachine.go(TriviaGameState.GameOver);
+        const winnerIds: string[] = this.findWinners();
+        this.notifyPlayersOfWinner(winnerIds);
     }
 
     private async handleCategoryPicked(message: CategoryPickedMessage) {
@@ -174,5 +179,6 @@ export default class TriviaGame implements IGame {
 
     private sendTriviaQuestionToPlayers(triviaQuestion: any) {
         this.lobby.send(new GameActionFromServerMessage(new ShowQuestionMessage(triviaQuestion)));
+        if(this.stateMachine.canGo(TriviaGameState.WaitingForAnswers)) this.stateMachine.go(TriviaGameState.WaitingForAnswers);
     }
 }

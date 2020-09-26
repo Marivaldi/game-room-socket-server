@@ -110,7 +110,7 @@ export class Server {
     getAvailableLobby(): Lobby {
         for (let lobbyId of this.lobbies.keys()) {
             const lobby = this.lobbies.get(lobbyId);
-            if (lobby.hasAvailableSeats) return lobby;
+            if (lobby.isJoinable()) return lobby;
         }
     }
 

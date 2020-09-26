@@ -22,6 +22,10 @@ export default class TestGame implements IGame {
         this.stateMachine.from(TestGameState.InProgress).to(TestGameState.GameOver);
     }
 
+    isInProgress(): boolean {
+        return !this.stateMachine.is(TestGameState.GameOver);
+    }
+
     handleMessage(message: IGameSocketMessage) {
         switch(message.type) {
             case TestGameMessageType.FIRST_CLICK:
