@@ -24,6 +24,7 @@ import GameActionMessage from "./socket-messages/GameActionMessage";
 import PlayMessage from "./socket-messages/PlayMessage";
 import CreatePrivateLobbyMessage from "./socket-messages/CreatePrivateLobbyMessage";
 import { env } from "process";
+import LeaveLobbyMessage from "./socket-messages/LeaveLobbyMessage";
 
 export class Server {
     private webSocketServer: WebSocket.Server;
@@ -36,7 +37,7 @@ export class Server {
         this.webSocketServer = new WebSocket.Server({ port: parseInt(process.env.PORT) });
         this.webSocketServer.on('connection', (socket, request) => {
             const theConnectionIsFromAnInvalidOrigin = (!request.headers.origin || request.headers.origin !== env.ORIGIN);
-            if(theConnectionIsFromAnInvalidOrigin) {
+            if (theConnectionIsFromAnInvalidOrigin) {
                 socket.terminate();
                 return;
             }
@@ -65,7 +66,7 @@ export class Server {
 
         lobby.disconnect(player);
 
-        if(lobby.isEmpty()) {
+        if (lobby.isEmpty()) {
             this.lobbies.delete(lobbyId);
             return;
         }
@@ -88,6 +89,9 @@ export class Server {
         switch (message.type) {
             case SocketMessageType.JOIN_RANDOM_LOBBY:
                 this.joinRandomLobby(message as JoinLobbyMessage)
+                break;
+            case SocketMessageType.LEAVE_LOBBY:
+                this.leaveLobby(message as LeaveLobbyMessage);
                 break;
             case SocketMessageType.CREATE_PRIVATE_LOBBY:
                 this.createPrivateLobby(message as CreatePrivateLobbyMessage);
@@ -143,14 +147,14 @@ export class Server {
         if (!player) return;
 
         player.username = message.username;
-        player.lobbyId =  lobbyToJoin.lobbyId;
+        player.lobbyId = lobbyToJoin.lobbyId;
         lobbyToJoin.connect(player);
 
         player.send(new LobbyJoinedMessage(lobbyToJoin.lobbyId));
 
         lobbyToJoin.send(new SystemChatMessage(`${message.username} has joined the lobby.`, SystemMessageLevel.INFO));
 
-        if(needToCreateANewLobby) {
+        if (needToCreateANewLobby) {
             player.isLobbyHost = true;
             player.send(new LobbyHostMessage());
         }
@@ -162,6 +166,11 @@ export class Server {
         this.updateGameVotes(lobbyToJoin);
     }
 
+    leaveLobby(message: LeaveLobbyMessage) {
+        const player: Player = this.connections.get(message.connectionId);
+        if (player.isInALobby()) this.removePlayerFromLobby(player);
+    }
+
     createPrivateLobby(message: CreatePrivateLobbyMessage) {
         const newLobby: Lobby = this.createNewLobby();
         newLobby.isPrivate = true;
@@ -170,7 +179,7 @@ export class Server {
         if (!player) return;
 
         player.username = message.username;
-        player.lobbyId =  newLobby.lobbyId;
+        player.lobbyId = newLobby.lobbyId;
         newLobby.connect(player);
 
         player.send(new LobbyJoinedMessage(newLobby.lobbyId));
