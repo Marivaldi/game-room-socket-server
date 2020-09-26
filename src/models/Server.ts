@@ -22,6 +22,7 @@ import { UpdateGameVotesMessage } from "./socket-messages/UpdateGameVotesMessage
 import StartGameMessage from "./socket-messages/StartGameMesssage";
 import GameActionMessage from "./socket-messages/GameActionMessage";
 import PlayMessage from "./socket-messages/PlayMessage";
+import CreatePrivateLobbyMessage from "./socket-messages/CreatePrivateLobbyMessage";
 
 export class Server {
     private webSocketServer: WebSocket.Server;
@@ -81,6 +82,9 @@ export class Server {
             case SocketMessageType.JOIN_RANDOM_LOBBY:
                 this.joinRandomLobby(message as JoinLobbyMessage)
                 break;
+            case SocketMessageType.CREATE_PRIVATE_LOBBY:
+                this.createPrivateLobby(message as CreatePrivateLobbyMessage);
+                break;
             case SocketMessageType.SEND_LOBBY_CHAT:
                 this.sendLobbyChat(message as SendLobbyChatMessage);
                 break;
@@ -110,7 +114,7 @@ export class Server {
     getAvailableLobby(): Lobby {
         for (let lobbyId of this.lobbies.keys()) {
             const lobby = this.lobbies.get(lobbyId);
-            if (lobby.isJoinable()) return lobby;
+            if (!lobby.isPrivate && lobby.isJoinable()) return lobby;
         }
     }
 
@@ -149,6 +153,25 @@ export class Server {
         };
 
         this.updateGameVotes(lobbyToJoin);
+    }
+
+    createPrivateLobby(message: CreatePrivateLobbyMessage) {
+        const newLobby: Lobby = this.createNewLobby();
+        newLobby.isPrivate = true;
+
+        const player = this.connections.get(message.connectionId)
+        if (!player) return;
+
+        player.username = message.username;
+        player.lobbyId =  newLobby.lobbyId;
+        newLobby.connect(player);
+
+        player.send(new LobbyJoinedMessage(newLobby.lobbyId));
+
+        newLobby.send(new SystemChatMessage(`${message.username} has joined the lobby.`, SystemMessageLevel.INFO));
+
+        player.isLobbyHost = true;
+        player.send(new LobbyHostMessage());
     }
 
     sendLobbyChat(message: SendLobbyChatMessage) {

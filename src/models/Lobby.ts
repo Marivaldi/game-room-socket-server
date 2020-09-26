@@ -14,6 +14,7 @@ import VoteForGameMessage from "./socket-messages/VoteForGameMessage";
 export default class Lobby {
     static readonly MAX_PLAYERS = 5;
     players: Player[] = [];
+    isPrivate: boolean = false;
     private gameFactory: GameFactory = new GameFactory();
     private game: IGame;
     private gameVotes: Map<GameKey, string[]> = new Map<GameKey, string[]>();
