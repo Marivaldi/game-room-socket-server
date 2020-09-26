@@ -23,6 +23,7 @@ import StartGameMessage from "./socket-messages/StartGameMesssage";
 import GameActionMessage from "./socket-messages/GameActionMessage";
 import PlayMessage from "./socket-messages/PlayMessage";
 import CreatePrivateLobbyMessage from "./socket-messages/CreatePrivateLobbyMessage";
+import { env } from "process";
 
 export class Server {
     private webSocketServer: WebSocket.Server;
@@ -33,7 +34,13 @@ export class Server {
 
     start() {
         this.webSocketServer = new WebSocket.Server({ port: parseInt(process.env.PORT) });
-        this.webSocketServer.on('connection', (socket) => {
+        this.webSocketServer.on('connection', (socket, request) => {
+            const theConnectionIsFromAnInvalidOrigin = (!request.headers.origin || request.headers.origin !== env.ORIGIN);
+            if(theConnectionIsFromAnInvalidOrigin) {
+                socket.terminate();
+                return;
+            }
+
             const connectionId = uuidv4();
             socket.on('close', () => this.onPlayerDisconnect(connectionId));
             socket.on('message', (json: string) => this.handleMessage(JSON.parse(json)))
