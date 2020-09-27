@@ -7,6 +7,7 @@ import { IGameSocketMessage } from "../../socket-messages/interfaces/IGameSocket
 import { GameKey } from "../enums/GameKey";
 import IGame from "../IGame";
 import AddPlayersMessage from "./messages/AddPlayersMessage";
+import GetPlayersMessage from "./messages/GetPlayersMessage";
 import { PhaserGameMessageType } from "./messages/PhaserGameMessageType";
 import PlayerMovedMessage from "./messages/PlayerMovedMessage";
 import PlayerStoppedMessage from "./messages/PlayerStoppedMessage";
@@ -41,10 +42,15 @@ export default class PhaserGame implements IGame {
             case PhaserGameMessageType.PLAYER_STOPPED:
                 this.handlePlayerStopped(message as PlayerStoppedMessage);
                 break;
-
+            case PhaserGameMessageType.GET_PLAYERS:
+                this.handleGetPlayers(message as GetPlayersMessage);
             default:
                 break;
         }
+    }
+
+    handleGetPlayers(message: GetPlayersMessage){
+        this.lobby.sendToSpecificPlayer(new GameActionFromServerMessage(new AddPlayersMessage(this.playerPositions)), message.connectionId);
     }
 
     handlePlayerMovement(message: PlayerMovedMessage) {
@@ -60,8 +66,6 @@ export default class PhaserGame implements IGame {
 
         const theGameHasNotStarted: boolean = this.stateMachine.canGo(TestGameState.InProgress);
         if (theGameHasNotStarted) { this.stateMachine.go(TestGameState.InProgress); }
-
-        this.lobby.send(new GameActionFromServerMessage(new AddPlayersMessage(this.playerPositions)));
     }
 
     finish() {
