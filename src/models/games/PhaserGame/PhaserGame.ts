@@ -9,6 +9,7 @@ import IGame from "../IGame";
 import AddPlayersMessage from "./messages/AddPlayersMessage";
 import { PhaserGameMessageType } from "./messages/PhaserGameMessageType";
 import PlayerMovedMessage from "./messages/PlayerMovedMessage";
+import PlayerStoppedMessage from "./messages/PlayerStoppedMessage";
 import PlayerPostion from "./PlayerPosition";
 
 enum TestGameState {
@@ -33,9 +34,14 @@ export default class PhaserGame implements IGame {
     }
 
     handleMessage(message: IGameSocketMessage) {
-        switch(message.type) {
+        switch (message.type) {
             case PhaserGameMessageType.PLAYER_MOVED:
-                this.handlePlayerMovement(message as PlayerMovedMessage)
+                this.handlePlayerMovement(message as PlayerMovedMessage);
+                break;
+            case PhaserGameMessageType.PLAYER_STOPPED:
+                this.handlePlayerStopped(message as PlayerStoppedMessage);
+                break;
+
             default:
                 break;
         }
@@ -45,17 +51,21 @@ export default class PhaserGame implements IGame {
         this.lobby.sendAndExclude(new GameActionFromServerMessage(message), [message.connectionId])
     }
 
+    handlePlayerStopped(message: PlayerStoppedMessage) {
+        this.lobby.sendAndExclude(new GameActionFromServerMessage(message), [message.connectionId])
+    }
+
     play() {
-        if(this.stateMachine.is(TestGameState.InProgress)) { return; }
+        if (this.stateMachine.is(TestGameState.InProgress)) { return; }
 
         const theGameHasNotStarted: boolean = this.stateMachine.canGo(TestGameState.InProgress);
-        if(theGameHasNotStarted) { this.stateMachine.go(TestGameState.InProgress); }
+        if (theGameHasNotStarted) { this.stateMachine.go(TestGameState.InProgress); }
 
         this.lobby.send(new GameActionFromServerMessage(new AddPlayersMessage(this.playerPositions)));
     }
 
     finish() {
         const theGameHasStarted: boolean = this.stateMachine.canGo(TestGameState.GameOver);
-        if(theGameHasStarted) this.stateMachine.go(TestGameState.GameOver);
+        if (theGameHasStarted) this.stateMachine.go(TestGameState.GameOver);
     }
 }
