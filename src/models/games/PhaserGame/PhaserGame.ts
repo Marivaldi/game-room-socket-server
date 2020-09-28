@@ -27,7 +27,7 @@ export default class PhaserGame implements IGame {
         this.stateMachine = new TypeState.FiniteStateMachine<TestGameState>(TestGameState.Starting);
         this.stateMachine.from(TestGameState.Starting).to(TestGameState.InProgress);
         this.stateMachine.from(TestGameState.InProgress).to(TestGameState.GameOver);
-        this.playerPositions = lobby.players.map((player: Player) => new PlayerPostion(player.connectionId, 0, 0));
+        this.playerPositions = lobby.players.map((player: Player) => new PlayerPostion(player.connectionId, player.username, 0, 0));
     }
 
     isInProgress(): boolean {
