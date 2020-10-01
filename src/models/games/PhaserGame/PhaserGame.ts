@@ -3,17 +3,16 @@ import { TypeState } from "typestate";
 import Lobby from "../../Lobby";
 import { Player } from "../../Player";
 import GameActionFromServerMessage from "../../socket-messages/GameActionFromServerMessage";
-import GameOverMessage from "../../socket-messages/GameOverMessage";
 import { IGameSocketMessage } from "../../socket-messages/interfaces/IGameSocketMessage";
 import { GameKey } from "../enums/GameKey";
 import IGame from "../IGame";
 import AddPlayersMessage from "./messages/AddPlayersMessage";
 import GetPlayersMessage from "./messages/GetPlayersMessage";
+import KillPlayerMessage from "./messages/KillPlayerMessage";
 import { PhaserGameMessageType } from "./messages/PhaserGameMessageType";
 import PlayerMovedMessage from "./messages/PlayerMovedMessage";
 import PlayerStoppedMessage from "./messages/PlayerStoppedMessage";
 import PlayerInformation from "./PlayerInformation";
-import PlayerPostion from "./PlayerInformation";
 
 enum TestGameState {
     Starting,
@@ -24,7 +23,7 @@ enum TestGameState {
 export default class PhaserGame implements IGame {
     key: GameKey.PHASER_GAME;
     stateMachine: TypeState.FiniteStateMachine<TestGameState>;
-    playerPositions: PlayerPostion[] = [];
+    players: PlayerInformation[] = [];
     private roles: string[] = ['necromancer', 'default_player', 'hero_1', 'default_player', 'default_player', 'hero_2', 'necromancer'];
     private playerRoles: Map<string, string> = new Map<string, string>();
     constructor(private lobby: Lobby) {
@@ -39,7 +38,7 @@ export default class PhaserGame implements IGame {
             this.playerRoles.set(connectionId, role);
         }
 
-        this.playerPositions = lobby.players.map((player: Player, index: number) => new PlayerInformation(player.connectionId, player.username, `spawn_point${index+1}`, this.playerRoles.get(player.connectionId)));
+        this.players = lobby.players.map((player: Player, index: number) => new PlayerInformation(player.connectionId, player.username, `spawn_point${index+1}`, this.playerRoles.get(player.connectionId)));
     }
 
     isInProgress(): boolean {
@@ -56,13 +55,16 @@ export default class PhaserGame implements IGame {
                 break;
             case PhaserGameMessageType.GET_PLAYERS:
                 this.handleGetPlayers(message as GetPlayersMessage);
+                break;
+            case PhaserGameMessageType.KILL_PLAYER:
+                this.handleKillPlayer(message as KillPlayerMessage);
             default:
                 break;
         }
     }
 
     handleGetPlayers(message: GetPlayersMessage){
-        this.lobby.sendToSpecificPlayer(new GameActionFromServerMessage(new AddPlayersMessage(this.playerPositions)), message.connectionId);
+        this.lobby.sendToSpecificPlayer(new GameActionFromServerMessage(new AddPlayersMessage(this.players)), message.connectionId);
     }
 
     handlePlayerMovement(message: PlayerMovedMessage) {
@@ -71,6 +73,10 @@ export default class PhaserGame implements IGame {
 
     handlePlayerStopped(message: PlayerStoppedMessage) {
         this.lobby.sendAndExclude(new GameActionFromServerMessage(message), [message.connectionId])
+    }
+
+    handleKillPlayer(message: KillPlayerMessage) {
+        this.lobby.send(new GameActionFromServerMessage(message));
     }
 
     play() {
