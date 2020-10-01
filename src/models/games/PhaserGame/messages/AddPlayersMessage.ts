@@ -1,5 +1,5 @@
 import { IGameSocketMessage } from "../../../socket-messages/interfaces/IGameSocketMessage";
-import PlayerPostion from "../PlayerPosition";
+import PlayerPostion from "../PlayerInformation";
 import { PhaserGameMessageType } from "./PhaserGameMessageType";
 
 export default class AddPlayersMessage implements IGameSocketMessage {
