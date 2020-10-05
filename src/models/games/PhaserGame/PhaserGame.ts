@@ -9,6 +9,7 @@ import { GameKey } from "../enums/GameKey";
 import IGame from "../IGame";
 import AddPlayersMessage from "./messages/AddPlayersMessage";
 import BodyFlaggedMessage from "./messages/BodyFlaggedMessage";
+import EndVoteMessage from "./messages/EndVoteMessage";
 import GetPlayersMessage from "./messages/GetPlayersMessage";
 import KillPlayerMessage from "./messages/KillPlayerMessage";
 import { PhaserGameMessageType } from "./messages/PhaserGameMessageType";
@@ -16,6 +17,7 @@ import PlayerMovedMessage from "./messages/PlayerMovedMessage";
 import PlayerStoppedMessage from "./messages/PlayerStoppedMessage";
 import StartVoteMessage from "./messages/StartVoteMessage";
 import UpdateVotesMessage from "./messages/UpdateVotesMessage";
+import VoteDecisionMessage from "./messages/VoteDecisionMessage";
 import VotePlayerMessage from "./messages/VotePlayerMessage";
 import PlayerInformation from "./PlayerInformation";
 
@@ -48,13 +50,13 @@ export default class PhaserGame implements IGame {
 
         const playerIds: string[] = lobby.players.map((player: Player) => player.connectionId);
         shuffle(playerIds);
-        for(let i = 0; i < playerIds.length; i++) {
+        for (let i = 0; i < playerIds.length; i++) {
             const connectionId = playerIds[i];
             const role = this.roles[i];
             this.playerRoles.set(connectionId, role);
         }
 
-        this.players = lobby.players.map((player: Player, index: number) => new PlayerInformation(player.connectionId, player.username, `spawn_point${index+1}`, this.playerRoles.get(player.connectionId)));
+        this.players = lobby.players.map((player: Player, index: number) => new PlayerInformation(player.connectionId, player.username, `spawn_point${index + 1}`, this.playerRoles.get(player.connectionId)));
     }
 
     isInProgress(): boolean {
@@ -83,12 +85,16 @@ export default class PhaserGame implements IGame {
                 break;
             case PhaserGameMessageType.VOTE_PLAYER:
                 this.handleVotePlayer(message as VotePlayerMessage);
+                break;
+            case PhaserGameMessageType.END_VOTE:
+                this.handleEndVote(message as EndVoteMessage);
+                break;
             default:
                 break;
         }
     }
 
-    handleGetPlayers(message: GetPlayersMessage){
+    handleGetPlayers(message: GetPlayersMessage) {
         this.lobby.sendToSpecificPlayer(new GameActionFromServerMessage(new AddPlayersMessage(this.players)), message.connectionId);
     }
 
@@ -105,7 +111,7 @@ export default class PhaserGame implements IGame {
     }
 
     handleBodyFlagged(message: BodyFlaggedMessage) {
-        if(this.stateMachine.is(PhaserGameState.BodyFlagged)) return;
+        if (this.stateMachine.is(PhaserGameState.BodyFlagged)) return;
 
         this.stateMachine.go(PhaserGameState.BodyFlagged);
         this.lobby.send(new GameActionFromServerMessage(message));
@@ -113,7 +119,7 @@ export default class PhaserGame implements IGame {
 
 
     handleStartVote(message: StartVoteMessage) {
-        if(this.stateMachine.is(PhaserGameState.Voting)) return;
+        if (this.stateMachine.is(PhaserGameState.Voting)) return;
 
         this.stateMachine.go(PhaserGameState.Voting);
         this.lobby.send(new GameActionFromServerMessage(message));
@@ -123,16 +129,55 @@ export default class PhaserGame implements IGame {
     handleVotePlayer(message: VotePlayerMessage) {
         this.votes.set(message.voter, message.votedFor);
         const mappedVotes: any = {};
-        for(let vote of this.votes.values()) {
-            if(mappedVotes.hasOwnProperty(vote)) {
+        for (let vote of this.votes.values()) {
+            if (mappedVotes.hasOwnProperty(vote)) {
                 mappedVotes[vote]++;
             } else {
                 mappedVotes[vote] = 1;
             }
         }
 
-
         this.lobby.send(new GameActionFromServerMessage(new UpdateVotesMessage(mappedVotes)));
+    }
+
+    handleEndVote(message: EndVoteMessage) {
+        if (this.stateMachine.is(PhaserGameState.Running)) return;
+
+        const mappedVotes: Map<string, number> = new Map<string, number>();
+        for (let vote of this.votes.values()) {
+            if (mappedVotes.hasOwnProperty(vote)) {
+                let numVotes = mappedVotes.get(vote);
+                numVotes++;
+            } else {
+                mappedVotes.set(vote, 1);
+            }
+        }
+
+        let mostVotes = [];
+        let maxVotes = 0;
+        for (let [key, value] of mappedVotes) {
+            if (value > maxVotes) {
+                mostVotes = [key];
+                maxVotes = value;
+                continue;
+            }
+
+            if (value === maxVotes) {
+                mostVotes.push(key);
+            }
+        }
+
+
+
+        if (mostVotes.length === 0) return;
+
+        if (mostVotes.length > 1) {
+            this.lobby.send(new GameActionFromServerMessage(new VoteDecisionMessage(true)));
+            return;
+        }
+
+        this.lobby.send(new GameActionFromServerMessage(new VoteDecisionMessage(false, mostVotes[0])));
+
     }
 
     play() {
