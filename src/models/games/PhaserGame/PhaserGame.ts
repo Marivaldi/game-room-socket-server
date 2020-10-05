@@ -123,19 +123,14 @@ export default class PhaserGame implements IGame {
     handleVotePlayer(message: VotePlayerMessage) {
         this.votes.set(message.voter, message.votedFor);
         const mappedVotes: any = {};
-        console.log(this.votes);
         for(let vote of this.votes.values()) {
-            console.log(vote);
-            console.log(mappedVotes);
             if(mappedVotes.hasOwnProperty(vote)) {
                 mappedVotes[vote]++;
             } else {
-                console.log(`setting ${vote} to 1`);
                 mappedVotes[vote] = 1;
             }
         }
 
-        console.log(mappedVotes);
 
         this.lobby.send(new GameActionFromServerMessage(new UpdateVotesMessage(mappedVotes)));
     }
